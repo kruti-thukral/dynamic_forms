@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+    <h2>Generate a dynamic form out of JSON object using vanilla Javascript</h2>
+
+    <p id="demo"></p>
+    <div id="outputDIV">
+        <!-- div to show form result JS Object -->
+    </div>
+    <script>
+        // JSON object that needs to be parsed to create a dynamic form
+        var json_obj = [{
+            "tag": "input",
+            "name": "first_name",
+            "type": "text",
+            "human_label": "First Name"
+        }, {
+            "tag": "input",
+            "name": "last_name",
+            "type": "text",
+            "human_label": "Last Name"
+        }, {
+            "tag": "input",
+            "name": "email",
+            "type": "email",
+            "human_label": "Email Address"
+        }, {
+            "tag": "input",
+            "name": "phone_number",
+            "type": "text",
+            "human_label": "Phone Number"
+        }, {
+            "tag": "input",
+            "name": "job_title",
+            "type": "text",
+            "human_label": "Job Title"
+        }, {
+            "tag": "input",
+            "name": "date_of_birth",
+            "type": "date",
+            "human_label": "Date of Birth"
+        }, {
+            "tag": "input",
+            "name": "parental_consent",
+            "type": "checkbox",
+            "human_label": "Parental Consent",
+            "conditional": {
+                "name": "date_of_birth",
+                "show_if": (value) => {
+                    const now = new Date();
+                    return value >= new Date(now.getFullYear() - 13, now.getMonth(), now.getDate());
+                }
+            }
+        }];
+        generateForm();
+
+        function generateForm() {
+            var event_subscriber = {};
+            var txt = ""
+            txt += "<form name=\"myform\">"
+
+
+            json_obj.forEach(generateHTML);
+
+            function generateHTML(x, index) {
+                txt += "<label for=\"" + x.name + "\">" + x.human_label + ":</label>";
+                txt += "<input type=" + x.type + " id=" + x.name + " name=" + x.name + "><br><br>";
+            }
+
+            txt += "<input name=\"Submit\"  type=\"submit\" value=\"Submit\"/>"
+            txt += "</form>"
+            document.getElementById("demo").innerHTML = txt;
+            // Parse through each element of JSON Object to set element visibility and register for event listeners
+            json_obj.forEach(setVisibility);
+
+            function setVisibility(x, index) {
+                if (x.hasOwnProperty('conditional')) {
+                    var publisher = x.conditional.name
+                    var subscriber = x.name
+                    var show_if = x.conditional.show_if
+                    // a dictionary that keeps track of publisher and subscribers
+                    if (event_subscriber.hasOwnProperty(publisher)) {
+                        event_subscriber[publisher].push(subscriber)
+                    } else
+                        event_subscriber[publisher] = [subscriber]
+
+                    // set the initial visibility to hidden
+                    document.getElementById(subscriber).style.visibility = "hidden";
+                    // Evaluate visibility condition when the target element changes state
+                    document.getElementById(publisher).onchange = function handleChange(event) {
+                        var target_value = event.target.value
+                        if (event.target.type === "date")
+                            target_value = new Date(target_value);
+                        var status = show_if(target_value);
+                        if (status === true) {
+                            // If condition evaluates to true, then make the element visible
+                            var listeners = event_subscriber[event.target.name]
+                            for (elem in listeners) {
+                                var x = listeners[elem]
+                                document.getElementById(x).style.visibility = "visible";
+                            }
+
+                        }
+
+                    };
+                }
+            }
+
+            const form = document.getElementsByName('myform')[0];
+
+            const handleFormSubmit = event => {
+                // Stop the form from submitting
+                event.preventDefault();
+                const formData = new FormData(form);
+                let formDataJSON = {};
+                // get form data 
+                for (const [key, value] of formData.entries()) {
+                    formDataJSON[key] = value;
+                }
+
+                var para1 = document.createElement("P");
+                para1.innerHTML = "Form Data as JS Object";
+                var para2 = document.createElement("P");
+                para2.innerHTML = JSON.stringify(formDataJSON);
+                document.getElementById("outputDIV").appendChild(para1);
+                document.getElementById("outputDIV").appendChild(para2);
+            };
+
+            // add event listener for form submission
+            form.addEventListener('submit', handleFormSubmit);
+        };
+    </script>
+
+</body>
+
+</html>
